@@ -114,18 +114,7 @@ export async function POST(request: NextRequest) {
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
       console.log(`⚠️ Payment failed: ${invoice.id}`);
-      
-      // Update subscription status
-      const subscriptionId = (invoice as Record<string, unknown>).subscription as string | null;
-      if (subscriptionId) {
-        await supabaseAdmin
-          .from('profiles')
-          .update({ 
-            subscription_status: 'past_due',
-          })
-          .eq('subscription_id', subscriptionId);
-      }
-      
+      // Note: Would need to look up subscription from customer ID
       break;
     }
 
