@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,24 +8,7 @@ import {
   FileText, Shield, Cookie, AlertTriangle, RefreshCw, ScrollText,
   Plus, ArrowRight, Clock, Download, Star
 } from "lucide-react";
-
-// TODO: Get from database
-const recentDocuments = [
-  {
-    id: "1",
-    title: "Privacy Policy - My SaaS",
-    type: "privacy-policy",
-    createdAt: "2024-02-21T10:30:00Z",
-    updatedAt: "2024-02-21T10:30:00Z",
-  },
-  {
-    id: "2",
-    title: "Terms of Service - My SaaS",
-    type: "terms-of-service",
-    createdAt: "2024-02-21T09:15:00Z",
-    updatedAt: "2024-02-21T09:15:00Z",
-  },
-];
+import { createClient } from "@/lib/supabase";
 
 const documentTypes = [
   { type: "privacy-policy", name: "Privacy Policy", icon: Shield, href: "/privacy-policy" },
@@ -45,18 +29,92 @@ const getTypeName = (type: string) => {
   return docType?.name || type;
 };
 
-export default function DashboardPage() {
-  // TODO: Get from Supabase
-  const stats = {
-    documentsThisMonth: 5,
-    documentsLimit: 25,
-    totalDocuments: 12,
-    savedDocuments: 8,
-  };
+interface Profile {
+  plan: string;
+  documents_generated_this_month: number;
+  documents_limit: number;
+}
 
-  const user = {
-    plan: "pro",
-  };
+interface Document {
+  id: string;
+  title: string;
+  document_type: string;
+  created_at: string;
+}
+
+export default function DashboardPage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      const supabase = createClient();
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileData) {
+        setProfile(profileData);
+      } else {
+        // Fallback to user metadata if profile doesn't exist yet
+        setProfile({
+          plan: user.user_metadata?.plan || 'free',
+          documents_generated_this_month: 0,
+          documents_limit: 3,
+        });
+      }
+
+      // Get recent documents
+      const { data: docsData } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (docsData) {
+        setDocuments(docsData);
+      }
+
+      setLoading(false);
+    }
+
+    loadData();
+  }, []);
+
+  const plan = profile?.plan || 'free';
+  const documentsThisMonth = profile?.documents_generated_this_month || 0;
+  const documentsLimit = plan === 'premium' ? -1 : plan === 'pro' ? 25 : 3;
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-200 rounded w-48 mb-2"></div>
+          <div className="h-4 bg-slate-200 rounded w-64"></div>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <Card key={i} className="p-4">
+              <div className="animate-pulse">
+                <div className="h-4 bg-slate-200 rounded w-24 mb-2"></div>
+                <div className="h-8 bg-slate-200 rounded w-16"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -79,16 +137,16 @@ export default function DashboardPage() {
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Documents This Month</div>
           <div className="text-2xl font-bold mt-1">
-            {stats.documentsThisMonth}
-            {user.plan !== "premium" && (
-              <span className="text-sm font-normal text-muted-foreground"> / {stats.documentsLimit}</span>
+            {documentsThisMonth}
+            {plan !== "premium" && (
+              <span className="text-sm font-normal text-muted-foreground"> / {documentsLimit}</span>
             )}
           </div>
-          {user.plan !== "premium" && (
+          {plan !== "premium" && documentsLimit > 0 && (
             <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-teal-500 rounded-full" 
-                style={{ width: `${(stats.documentsThisMonth / stats.documentsLimit) * 100}%` }}
+                style={{ width: `${Math.min((documentsThisMonth / documentsLimit) * 100, 100)}%` }}
               />
             </div>
           )}
@@ -96,22 +154,22 @@ export default function DashboardPage() {
 
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Total Generated</div>
-          <div className="text-2xl font-bold mt-1">{stats.totalDocuments}</div>
+          <div className="text-2xl font-bold mt-1">{documents.length}</div>
           <div className="text-xs text-muted-foreground mt-1">All time</div>
         </Card>
 
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Saved Documents</div>
-          <div className="text-2xl font-bold mt-1">{stats.savedDocuments}</div>
+          <div className="text-2xl font-bold mt-1">{documents.length}</div>
           <div className="text-xs text-muted-foreground mt-1">
-            {user.plan === "pro" ? "50 max" : user.plan === "premium" ? "Unlimited" : "Upgrade to save"}
+            {plan === "pro" ? "50 max" : plan === "premium" ? "Unlimited" : "Upgrade to save"}
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Current Plan</div>
-          <div className="text-2xl font-bold mt-1 capitalize">{user.plan}</div>
-          {user.plan !== "premium" && (
+          <div className="text-2xl font-bold mt-1 capitalize">{plan}</div>
+          {plan !== "premium" && (
             <Link href="/dashboard/billing" className="text-xs text-teal-600 hover:text-teal-700 mt-1 inline-block">
               Upgrade →
             </Link>
@@ -149,15 +207,17 @@ export default function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Recent Documents</h2>
-          <Link href="/dashboard/documents" className="text-sm text-teal-600 hover:text-teal-700">
-            View all →
-          </Link>
+          {documents.length > 0 && (
+            <Link href="/dashboard/documents" className="text-sm text-teal-600 hover:text-teal-700">
+              View all →
+            </Link>
+          )}
         </div>
 
-        {recentDocuments.length > 0 ? (
+        {documents.length > 0 ? (
           <div className="space-y-3">
-            {recentDocuments.map((doc) => {
-              const Icon = getTypeIcon(doc.type);
+            {documents.map((doc) => {
+              const Icon = getTypeIcon(doc.document_type);
               return (
                 <Card key={doc.id} className="p-4">
                   <div className="flex items-center gap-4">
@@ -166,11 +226,11 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{doc.title}</div>
-                      <div className="text-sm text-muted-foreground">{getTypeName(doc.type)}</div>
+                      <div className="text-sm text-muted-foreground">{getTypeName(doc.document_type)}</div>
                     </div>
                     <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {new Date(doc.createdAt).toLocaleDateString()}
+                      {new Date(doc.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="icon" className="h-8 w-8">

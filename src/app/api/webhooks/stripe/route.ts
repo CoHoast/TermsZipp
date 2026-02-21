@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+
+// Create admin Supabase client for webhook
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -30,16 +37,30 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
       const plan = session.metadata?.plan;
+      const customerId = session.customer as string;
+      const subscriptionId = session.subscription as string;
       
       console.log(`✅ Checkout completed for user ${userId}, plan: ${plan}`);
       
-      // TODO: Update user's subscription status in Supabase
-      // const supabase = createServerClient();
-      // await supabase.from('profiles').update({ 
-      //   plan: plan,
-      //   stripe_customer_id: session.customer,
-      //   subscription_status: 'active' 
-      // }).eq('id', userId);
+      if (userId && plan) {
+        // Update user's profile with subscription info
+        const { error } = await supabaseAdmin
+          .from('profiles')
+          .update({ 
+            plan: plan,
+            stripe_customer_id: customerId,
+            subscription_id: subscriptionId,
+            subscription_status: 'active',
+            documents_limit: plan === 'premium' ? -1 : plan === 'pro' ? 25 : 3,
+          })
+          .eq('id', userId);
+        
+        if (error) {
+          console.error('Error updating profile:', error);
+        } else {
+          console.log(`✅ Profile updated for user ${userId} to ${plan} plan`);
+        }
+      }
       
       break;
     }
@@ -48,7 +69,18 @@ export async function POST(request: NextRequest) {
       const subscription = event.data.object as Stripe.Subscription;
       console.log(`📝 Subscription updated: ${subscription.id}, status: ${subscription.status}`);
       
-      // TODO: Update subscription status in database
+      // Update subscription status
+      const { error } = await supabaseAdmin
+        .from('profiles')
+        .update({ 
+          subscription_status: subscription.status,
+        })
+        .eq('subscription_id', subscription.id);
+      
+      if (error) {
+        console.error('Error updating subscription status:', error);
+      }
+      
       break;
     }
 
@@ -56,7 +88,20 @@ export async function POST(request: NextRequest) {
       const subscription = event.data.object as Stripe.Subscription;
       console.log(`❌ Subscription canceled: ${subscription.id}`);
       
-      // TODO: Downgrade user to free plan in database
+      // Downgrade to free plan
+      const { error } = await supabaseAdmin
+        .from('profiles')
+        .update({ 
+          plan: 'free',
+          subscription_status: 'canceled',
+          documents_limit: 3,
+        })
+        .eq('subscription_id', subscription.id);
+      
+      if (error) {
+        console.error('Error downgrading user:', error);
+      }
+      
       break;
     }
 
@@ -70,7 +115,17 @@ export async function POST(request: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice;
       console.log(`⚠️ Payment failed: ${invoice.id}`);
       
-      // TODO: Send email notification about failed payment
+      // Update subscription status
+      const subscriptionId = (invoice as Record<string, unknown>).subscription as string | null;
+      if (subscriptionId) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ 
+            subscription_status: 'past_due',
+          })
+          .eq('subscription_id', subscriptionId);
+      }
+      
       break;
     }
 
