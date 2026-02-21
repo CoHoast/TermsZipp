@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { 
-  Zap, FileText, CreditCard, Settings, LogOut, Menu, X,
+  FileText, CreditCard, Settings, LogOut, Menu, X,
   Home, Plus, ChevronDown, User
 } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const navItems = [
   { name: "Overview", href: "/dashboard", icon: Home },
@@ -22,28 +25,68 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // TODO: Get from Supabase auth
-  const user = {
-    name: "John Doe",
-    email: "john@example.com",
-    plan: "pro",
-    avatar: null,
+  useEffect(() => {
+    const supabase = createClient();
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push("/login");
+        return;
+      }
+      setUser(session.user);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.push("/login");
+        return;
+      }
+      setUser(session.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
   };
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const userEmail = user?.email || "";
+  const userPlan = user?.user_metadata?.plan || "free";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Mobile Header */}
       <header className="lg:hidden sticky top-0 z-50 bg-white border-b">
         <div className="flex items-center justify-between px-4 h-16">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="brand-gradient rounded-lg p-1.5">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
+          <Link href="/dashboard" className="flex items-center gap-0.5">
+            <Image 
+              src="/logo.svg" 
+              alt="TermsZipp" 
+              width={24} 
+              height={32}
+              className="w-6 h-8"
+            />
             <span className="font-bold text-lg">
-              Terms<span className="brand-gradient-text">Zipp</span>
+              Terms<span className="brand-gradient-text font-extrabold">Zipp</span>
             </span>
           </Link>
           <button
@@ -59,13 +102,17 @@ export default function DashboardLayout({
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r">
           {/* Logo */}
-          <div className="flex items-center gap-2 px-6 h-16 border-b">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="brand-gradient rounded-lg p-1.5">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-lg">
-                Terms<span className="brand-gradient-text">Zipp</span>
+          <div className="flex items-center gap-0.5 px-6 h-16 border-b">
+            <Link href="/dashboard" className="flex items-center gap-0.5">
+              <Image 
+                src="/logo.svg" 
+                alt="TermsZipp" 
+                width={28} 
+                height={36}
+                className="w-7 h-9"
+              />
+              <span className="font-bold text-xl">
+                Terms<span className="brand-gradient-text font-extrabold">Zipp</span>
               </span>
             </Link>
           </div>
@@ -84,7 +131,7 @@ export default function DashboardLayout({
           <nav className="flex-1 px-4 pb-4 space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || 
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                (item.href !== "/dashboard" && pathname?.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
@@ -109,16 +156,12 @@ export default function DashboardLayout({
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
-                  {user.avatar ? (
-                    <img src={user.avatar} alt="" className="w-8 h-8 rounded-full" />
-                  ) : (
-                    <User className="h-4 w-4 text-teal-600" />
-                  )}
+                <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-medium truncate">{user.name}</div>
-                  <div className="text-xs text-muted-foreground capitalize">{user.plan} Plan</div>
+                  <div className="text-sm font-medium truncate">{userName}</div>
+                  <div className="text-xs text-muted-foreground capitalize">{userPlan} Plan</div>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
               </button>
@@ -135,10 +178,7 @@ export default function DashboardLayout({
                   </Link>
                   <button
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-100 text-red-600"
-                    onClick={() => {
-                      // TODO: Implement logout
-                      console.log("Logout");
-                    }}
+                    onClick={handleLogout}
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out
@@ -155,12 +195,16 @@ export default function DashboardLayout({
             <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
             <aside className="fixed inset-y-0 left-0 w-64 bg-white">
               <div className="flex items-center justify-between px-4 h-16 border-b">
-                <Link href="/dashboard" className="flex items-center gap-2">
-                  <div className="brand-gradient rounded-lg p-1.5">
-                    <Zap className="h-5 w-5 text-white" />
-                  </div>
+                <Link href="/dashboard" className="flex items-center gap-0.5">
+                  <Image 
+                    src="/logo.svg" 
+                    alt="TermsZipp" 
+                    width={24} 
+                    height={32}
+                    className="w-6 h-8"
+                  />
                   <span className="font-bold text-lg">
-                    Terms<span className="brand-gradient-text">Zipp</span>
+                    Terms<span className="brand-gradient-text font-extrabold">Zipp</span>
                   </span>
                 </Link>
                 <button onClick={() => setSidebarOpen(false)} className="p-2">
@@ -180,7 +224,7 @@ export default function DashboardLayout({
               <nav className="px-4 space-y-1">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href || 
-                    (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                    (item.href !== "/dashboard" && pathname?.startsWith(item.href));
                   return (
                     <Link
                       key={item.href}
@@ -201,21 +245,18 @@ export default function DashboardLayout({
 
               <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
                 <div className="flex items-center gap-3 p-2">
-                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
-                    <User className="h-4 w-4 text-teal-600" />
+                  <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium truncate">{user.name}</div>
-                    <div className="text-xs text-muted-foreground">{user.email}</div>
+                    <div className="text-sm font-medium truncate">{userName}</div>
+                    <div className="text-xs text-muted-foreground">{userEmail}</div>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-red-600 mt-2"
-                  onClick={() => {
-                    // TODO: Implement logout
-                    console.log("Logout");
-                  }}
+                  onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
