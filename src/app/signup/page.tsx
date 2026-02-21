@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Zap, Mail, Lock, User, ArrowRight, Chrome, Check, Building2, Crown } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Check, Building2, Crown, Zap } from "lucide-react";
+import Image from "next/image";
 
 type PlanType = "free" | "pro" | "premium";
 
@@ -75,24 +76,21 @@ function SignupContent() {
     }, 1000);
   };
 
-  const handleGoogleSignup = async () => {
-    setLoading(true);
-    // TODO: Implement Supabase Google OAuth
-    console.log("Google signup with plan:", selectedPlan);
-    setLoading(false);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-12">
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="brand-gradient rounded-lg p-2">
-              <Zap className="h-6 w-6 text-white" />
-            </div>
+          <Link href="/" className="inline-flex items-center gap-0.5 justify-center">
+            <Image 
+              src="/logo.svg" 
+              alt="TermsZipp" 
+              width={28} 
+              height={36}
+              className="w-7 h-9"
+            />
             <span className="text-2xl font-bold">
-              Terms<span className="brand-gradient-text">Zipp</span>
+              Terms<span className="brand-gradient-text font-extrabold">Zipp</span>
             </span>
           </Link>
           <p className="text-muted-foreground mt-2">Create your account</p>
@@ -144,26 +142,6 @@ function SignupContent() {
                 : "Unlimited documents, bulk generate, team features"
               }
             </p>
-          </div>
-
-          {/* Google Signup */}
-          <Button 
-            variant="outline" 
-            className="w-full mb-6" 
-            onClick={handleGoogleSignup}
-            disabled={loading}
-          >
-            <Chrome className="h-5 w-5 mr-2" />
-            Continue with Google
-          </Button>
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Or continue with email</span>
-            </div>
           </div>
 
           {/* Email Signup Form */}
