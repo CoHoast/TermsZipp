@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Sparkles, ArrowRight, FileText, Check, Save, Download, Copy, Loader2 } from "lucide-react";
+import { Lock, Sparkles, ArrowRight, FileText, Check, Save, Download, Copy, Loader2, FileDown } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { createClient } from "@/lib/supabase";
+import { jsPDF } from "jspdf";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 
 interface DocumentPreviewGateProps {
   content: string;
@@ -186,6 +188,143 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
     }
   };
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    // Parse markdown and add to PDF
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      // Check if we need a new page
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+
+      if (line.startsWith('# ')) {
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        const text = line.replace('# ', '');
+        doc.text(text, margin, y);
+        y += 12;
+      } else if (line.startsWith('## ')) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        const text = line.replace('## ', '');
+        y += 4;
+        doc.text(text, margin, y);
+        y += 10;
+      } else if (line.startsWith('### ')) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        const text = line.replace('### ', '');
+        y += 2;
+        doc.text(text, margin, y);
+        y += 8;
+      } else if (line.startsWith('- ')) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const text = '• ' + line.replace('- ', '').replace(/\*\*(.*?)\*\*/g, '$1');
+        const splitText = doc.splitTextToSize(text, maxWidth - 5);
+        doc.text(splitText, margin + 5, y);
+        y += splitText.length * 5;
+      } else if (line.trim()) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const text = line.replace(/\*\*(.*?)\*\*/g, '$1');
+        const splitText = doc.splitTextToSize(text, maxWidth);
+        doc.text(splitText, margin, y);
+        y += splitText.length * 5;
+      } else {
+        y += 3; // Empty line spacing
+      }
+    }
+
+    doc.save(`${documentTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`);
+
+    // Log activity
+    if (user && isPaidUser) {
+      const supabase = createClient();
+      supabase.from('activity_log').insert({
+        user_id: user.id,
+        action: 'downloaded',
+        document_type: documentTypeSlug || documentType.toLowerCase().replace(/\s+/g, '-'),
+        document_title: documentTitle,
+        details: 'Downloaded as PDF',
+      });
+    }
+  };
+
+  const handleDownloadWord = async () => {
+    // Parse markdown into docx paragraphs
+    const paragraphs: Paragraph[] = [];
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('# ')) {
+        paragraphs.push(new Paragraph({
+          text: line.replace('# ', ''),
+          heading: HeadingLevel.HEADING_1,
+        }));
+      } else if (line.startsWith('## ')) {
+        paragraphs.push(new Paragraph({
+          text: line.replace('## ', ''),
+          heading: HeadingLevel.HEADING_2,
+        }));
+      } else if (line.startsWith('### ')) {
+        paragraphs.push(new Paragraph({
+          text: line.replace('### ', ''),
+          heading: HeadingLevel.HEADING_3,
+        }));
+      } else if (line.startsWith('- ')) {
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: line.replace('- ', ''), })],
+          bullet: { level: 0 },
+        }));
+      } else if (line.trim()) {
+        // Handle bold text
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        const children = parts.map(part => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return new TextRun({ text: part.slice(2, -2), bold: true });
+          }
+          return new TextRun({ text: part });
+        });
+        paragraphs.push(new Paragraph({ children }));
+      } else {
+        paragraphs.push(new Paragraph({ text: '' }));
+      }
+    }
+
+    const doc = new Document({
+      sections: [{ children: paragraphs }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${documentTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Log activity
+    if (user && isPaidUser) {
+      const supabase = createClient();
+      supabase.from('activity_log').insert({
+        user_id: user.id,
+        action: 'downloaded',
+        document_type: documentTypeSlug || documentType.toLowerCase().replace(/\s+/g, '-'),
+        document_title: documentTitle,
+        details: 'Downloaded as Word',
+      });
+    }
+  };
+
   // Split content for preview (free users)
   const lines = content.split('\n');
   const previewLineCount = Math.max(Math.floor(lines.length * 0.5), 25);
@@ -213,10 +352,16 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
         <Card className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <h2 className="text-lg font-semibold">Your {documentType}</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleCopy}>
                 {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                 {copied ? "Copied!" : "Copy"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                <FileDown className="h-4 w-4 mr-1" /> PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadWord}>
+                <FileDown className="h-4 w-4 mr-1" /> Word
               </Button>
               <Button variant="outline" size="sm" onClick={() => handleDownload('md')}>
                 <Download className="h-4 w-4 mr-1" /> MD
