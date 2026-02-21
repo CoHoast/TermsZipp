@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   FileText, Shield, Cookie, AlertTriangle, RefreshCw, ScrollText,
-  Plus, Search, Filter, Clock, Download, Star, MoreVertical, Trash2, Edit, Eye
+  Plus, Search, Filter, Clock, Download, Star, MoreVertical, Trash2, Edit, Eye, Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -15,17 +15,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { createClient } from "@/lib/supabase";
 
-// TODO: Get from database
-const documents: {
+interface Document {
   id: string;
   title: string;
-  type: string;
-  isFavorite: boolean;
-  downloadCount: number;
-  createdAt: string;
-  updatedAt: string;
-}[] = [];
+  document_type: string;
+  is_favorite: boolean;
+  download_count: number;
+  created_at: string;
+  updated_at: string;
+}
 
 const documentTypes = [
   { type: "privacy-policy", name: "Privacy Policy", icon: Shield },
@@ -47,14 +47,49 @@ const getTypeName = (type: string) => {
 };
 
 export default function DocumentsPage() {
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
 
+  useEffect(() => {
+    async function loadDocuments() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (data) {
+        setDocuments(data);
+      }
+      setLoading(false);
+    }
+
+    loadDocuments();
+  }, []);
+
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = !filterType || doc.type === filterType;
+    const matchesType = !filterType || doc.document_type === filterType;
     return matchesSearch && matchesType;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -108,7 +143,7 @@ export default function DocumentsPage() {
       {filteredDocuments.length > 0 ? (
         <div className="space-y-3">
           {filteredDocuments.map((doc) => {
-            const Icon = getTypeIcon(doc.type);
+            const Icon = getTypeIcon(doc.document_type);
             return (
               <Card key={doc.id} className="p-4">
                 <div className="flex items-center gap-4">
@@ -118,20 +153,20 @@ export default function DocumentsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{doc.title}</span>
-                      {doc.isFavorite && <Star className="h-4 w-4 text-amber-500 fill-amber-500 shrink-0" />}
+                      {doc.is_favorite && <Star className="h-4 w-4 text-amber-500 fill-amber-500 shrink-0" />}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span>{getTypeName(doc.type)}</span>
+                      <span>{getTypeName(doc.document_type)}</span>
                       <span className="hidden sm:inline">•</span>
                       <span className="hidden sm:flex items-center gap-1">
                         <Download className="h-3 w-3" />
-                        {doc.downloadCount} downloads
+                        {doc.download_count || 0} downloads
                       </span>
                     </div>
                   </div>
                   <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {new Date(doc.updatedAt).toLocaleDateString()}
+                    {new Date(doc.updated_at || doc.created_at).toLocaleDateString()}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" asChild>
@@ -147,9 +182,11 @@ export default function DocumentsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/documents/${doc.id}`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Download className="h-4 w-4 mr-2" />
@@ -157,7 +194,7 @@ export default function DocumentsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Star className="h-4 w-4 mr-2" />
-                          {doc.isFavorite ? "Unfavorite" : "Favorite"}
+                          {doc.is_favorite ? "Unfavorite" : "Favorite"}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600">
                           <Trash2 className="h-4 w-4 mr-2" />

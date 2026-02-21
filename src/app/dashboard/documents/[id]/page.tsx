@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { 
   ArrowLeft, Save, Download, Copy, Trash2, FileText, Shield, Cookie, 
-  AlertTriangle, RefreshCw, ScrollText, Check, Loader2, Eye, Edit3
+  AlertTriangle, RefreshCw, ScrollText, Check, Loader2, Eye, Edit3, FileDown
 } from "lucide-react";
 import {
   AlertDialog,
@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createClient } from "@/lib/supabase";
 import ReactMarkdown from "react-markdown";
+import { jsPDF } from "jspdf";
+import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 
 const documentTypes = [
   { type: "privacy-policy", name: "Privacy Policy", icon: Shield },
@@ -194,6 +196,112 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+
+      if (line.startsWith('# ')) {
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(line.replace('# ', ''), margin, y);
+        y += 12;
+      } else if (line.startsWith('## ')) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        y += 4;
+        doc.text(line.replace('## ', ''), margin, y);
+        y += 10;
+      } else if (line.startsWith('### ')) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        y += 2;
+        doc.text(line.replace('### ', ''), margin, y);
+        y += 8;
+      } else if (line.startsWith('- ')) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const text = '• ' + line.replace('- ', '').replace(/\*\*(.*?)\*\*/g, '$1');
+        const splitText = doc.splitTextToSize(text, maxWidth - 5);
+        doc.text(splitText, margin + 5, y);
+        y += splitText.length * 5;
+      } else if (line.trim()) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const text = line.replace(/\*\*(.*?)\*\*/g, '$1');
+        const splitText = doc.splitTextToSize(text, maxWidth);
+        doc.text(splitText, margin, y);
+        y += splitText.length * 5;
+      } else {
+        y += 3;
+      }
+    }
+
+    doc.save(`${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`);
+  };
+
+  const handleDownloadWord = async () => {
+    const paragraphs: Paragraph[] = [];
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('# ')) {
+        paragraphs.push(new Paragraph({
+          text: line.replace('# ', ''),
+          heading: HeadingLevel.HEADING_1,
+        }));
+      } else if (line.startsWith('## ')) {
+        paragraphs.push(new Paragraph({
+          text: line.replace('## ', ''),
+          heading: HeadingLevel.HEADING_2,
+        }));
+      } else if (line.startsWith('### ')) {
+        paragraphs.push(new Paragraph({
+          text: line.replace('### ', ''),
+          heading: HeadingLevel.HEADING_3,
+        }));
+      } else if (line.startsWith('- ')) {
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: line.replace('- ', '') })],
+          bullet: { level: 0 },
+        }));
+      } else if (line.trim()) {
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        const children = parts.map(part => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return new TextRun({ text: part.slice(2, -2), bold: true });
+          }
+          return new TextRun({ text: part });
+        });
+        paragraphs.push(new Paragraph({ children }));
+      } else {
+        paragraphs.push(new Paragraph({ text: '' }));
+      }
+    }
+
+    const wordDoc = new DocxDocument({
+      sections: [{ children: paragraphs }],
+    });
+
+    const blob = await Packer.toBlob(wordDoc);
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -329,6 +437,14 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
               <Button variant="outline" size="sm" onClick={handleCopy}>
                 {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                 {copied ? "Copied!" : "Copy"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                <FileDown className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadWord}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Word
               </Button>
               <Button variant="outline" size="sm" onClick={handleDownloadMarkdown}>
                 <Download className="h-4 w-4 mr-2" />
