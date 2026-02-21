@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   CreditCard, Check, X, ArrowRight, AlertCircle, Building2, Crown, Zap,
-  ExternalLink
+  ExternalLink, Loader2
 } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 type PlanType = "free" | "pro" | "premium";
 
@@ -49,8 +50,8 @@ const plans = {
   },
   premium: {
     name: "Premium",
-    price: 29,
-    priceAnnual: 249,
+    price: 19,
+    priceAnnual: 149,
     description: "For agencies & teams",
     icon: Crown,
     iconBg: "bg-amber-100",
@@ -66,36 +67,130 @@ const plans = {
   },
 };
 
+interface Profile {
+  id: string;
+  plan: string;
+  subscription_status: string;
+  stripe_customer_id: string | null;
+  documents_generated_this_month: number;
+  documents_limit: number;
+}
+
 export default function BillingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
-  
-  // TODO: Get from Supabase
-  const currentPlan = "pro" as PlanType;
-  const subscription = {
-    status: "active",
-    currentPeriodEnd: "2024-03-21T00:00:00Z",
-    cancelAtPeriodEnd: false,
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setProfile(data);
+        } else {
+          // Fallback
+          setProfile({
+            id: user.id,
+            plan: user.user_metadata?.plan || 'free',
+            subscription_status: 'inactive',
+            stripe_customer_id: null,
+            documents_generated_this_month: 0,
+            documents_limit: 3,
+          });
+        }
+      }
+      setLoading(false);
+    }
+    loadProfile();
+  }, []);
+
+  const currentPlan = (profile?.plan || 'free') as PlanType;
+
+  const handleManageBilling = async () => {
+    if (!profile?.id) return;
+    
+    setPortalLoading(true);
+    try {
+      const response = await fetch('/api/billing-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: profile.id }),
+      });
+      
+      const { url, error } = await response.json();
+      
+      if (error) {
+        alert(error);
+        setPortalLoading(false);
+        return;
+      }
+      
+      window.location.href = url;
+    } catch (err) {
+      alert('Failed to open billing portal. Please try again.');
+      setPortalLoading(false);
+    }
   };
 
   const handleUpgrade = async (plan: PlanType) => {
-    // TODO: Implement Stripe checkout
-    console.log("Upgrade to:", plan);
-  };
-
-  const handleDowngrade = async (plan: PlanType) => {
-    // TODO: Implement Stripe subscription update
-    console.log("Downgrade to:", plan);
-  };
-
-  const handleManageBilling = () => {
-    // TODO: Redirect to Stripe customer portal
-    console.log("Open Stripe portal");
+    if (!profile?.id) return;
+    
+    setCheckoutLoading(plan);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan,
+          userId: profile.id,
+          email: user?.email,
+          billingCycle,
+        }),
+      });
+      
+      const { url, error } = await response.json();
+      
+      if (error) {
+        alert(error);
+        setCheckoutLoading(null);
+        return;
+      }
+      
+      window.location.href = url;
+    } catch (err) {
+      alert('Failed to start checkout. Please try again.');
+      setCheckoutLoading(null);
+    }
   };
 
   const savings = {
     pro: Math.round((1 - (plans.pro.priceAnnual / (plans.pro.price * 12))) * 100),
     premium: Math.round((1 - (plans.premium.priceAnnual / (plans.premium.price * 12))) * 100),
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-200 rounded w-32 mb-2"></div>
+          <div className="h-4 bg-slate-200 rounded w-64"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -112,25 +207,21 @@ export default function BillingPage() {
             <h2 className="text-lg font-semibold mb-1">Current Plan</h2>
             <div className="flex items-center gap-2">
               <span className="text-2xl font-bold capitalize">{currentPlan}</span>
-              {subscription.status === "active" && (
+              {profile?.subscription_status === "active" && (
                 <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
               )}
-              {subscription.cancelAtPeriodEnd && (
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Canceling</span>
+              {profile?.subscription_status === "canceled" && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Canceled</span>
               )}
             </div>
-            {currentPlan !== "free" && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {subscription.cancelAtPeriodEnd 
-                  ? `Access until ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-                  : `Next billing date: ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-                }
-              </p>
-            )}
           </div>
-          {currentPlan !== "free" && (
-            <Button variant="outline" onClick={handleManageBilling}>
-              <CreditCard className="h-4 w-4 mr-2" />
+          {currentPlan !== "free" && profile?.stripe_customer_id && (
+            <Button variant="outline" onClick={handleManageBilling} disabled={portalLoading}>
+              {portalLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4 mr-2" />
+              )}
               Manage Billing
               <ExternalLink className="h-3 w-3 ml-2" />
             </Button>
@@ -147,25 +238,17 @@ export default function BillingPage() {
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Documents Generated</span>
                 <span className="font-medium">
-                  5 {currentPlan === "pro" && "/ 25"}
+                  {profile?.documents_generated_this_month || 0}
+                  {currentPlan === "pro" && ` / ${profile?.documents_limit || 25}`}
+                  {currentPlan === "premium" && " (Unlimited)"}
                 </span>
               </div>
               {currentPlan === "pro" && (
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-teal-500 rounded-full" style={{ width: "20%" }} />
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-muted-foreground">Saved Documents</span>
-                <span className="font-medium">
-                  8 {currentPlan === "pro" && "/ 50"}
-                </span>
-              </div>
-              {currentPlan === "pro" && (
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-teal-500 rounded-full" style={{ width: "16%" }} />
+                  <div 
+                    className="h-full bg-teal-500 rounded-full" 
+                    style={{ width: `${Math.min(((profile?.documents_generated_this_month || 0) / (profile?.documents_limit || 25)) * 100, 100)}%` }} 
+                  />
                 </div>
               )}
             </div>
@@ -208,9 +291,6 @@ export default function BillingPage() {
           const isUpgrade = 
             (currentPlan === "free" && (key === "pro" || key === "premium")) ||
             (currentPlan === "pro" && key === "premium");
-          const isDowngrade = 
-            (currentPlan === "premium" && (key === "pro" || key === "free")) ||
-            (currentPlan === "pro" && key === "free");
 
           const price = billingCycle === "annual" && key !== "free"
             ? Math.round(plan.priceAnnual / 12)
@@ -256,12 +336,19 @@ export default function BillingPage() {
                   Current Plan
                 </Button>
               ) : isUpgrade ? (
-                <Button className="w-full btn-gradient" onClick={() => handleUpgrade(key)}>
+                <Button 
+                  className="w-full btn-gradient" 
+                  onClick={() => handleUpgrade(key)}
+                  disabled={checkoutLoading === key}
+                >
+                  {checkoutLoading === key ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
                   Upgrade <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              ) : isDowngrade ? (
-                <Button variant="outline" className="w-full" onClick={() => handleDowngrade(key)}>
-                  Downgrade
+              ) : currentPlan !== "free" && key === "free" ? (
+                <Button variant="outline" className="w-full" onClick={handleManageBilling}>
+                  Manage via Stripe
                 </Button>
               ) : null}
 
@@ -284,19 +371,16 @@ export default function BillingPage() {
         })}
       </div>
 
-      {/* Downgrade Warning */}
-      {currentPlan !== "free" && (
-        <Card className="p-4 bg-amber-50 border-amber-200">
-          <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
-            <div className="text-sm text-amber-800">
-              <strong>About plan changes:</strong> When upgrading, you'll get immediate access to new features. 
-              When downgrading, you'll keep your current features until the end of your billing cycle. 
-              Saved documents remain accessible even after downgrading.
-            </div>
+      {/* Info about plan changes */}
+      <Card className="p-4 bg-blue-50 border-blue-200">
+        <div className="flex gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 shrink-0" />
+          <div className="text-sm text-blue-800">
+            <strong>Managing your subscription:</strong> Click "Manage Billing" to update your payment method, 
+            view invoices, change your plan, or cancel your subscription through the secure Stripe portal.
           </div>
-        </Card>
-      )}
+        </div>
+      </Card>
     </div>
   );
 }
