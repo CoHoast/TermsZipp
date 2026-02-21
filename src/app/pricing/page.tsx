@@ -171,7 +171,6 @@ export default function PricingPage() {
               <FeatureItem included>Dashboard to manage docs</FeatureItem>
               <FeatureItem included>No TermsZipp branding</FeatureItem>
               <FeatureItem>Bulk generate all 6 at once</FeatureItem>
-              <FeatureItem>Team members</FeatureItem>
             </ul>
           </Card>
 
@@ -184,7 +183,7 @@ export default function PricingPage() {
                 </div>
                 <h3 className="text-xl font-bold">Premium</h3>
               </div>
-              <p className="text-muted-foreground text-sm">For agencies & teams</p>
+              <p className="text-muted-foreground text-sm">For power users & agencies</p>
             </div>
 
             <div className="mb-6">
@@ -212,8 +211,8 @@ export default function PricingPage() {
               <FeatureItem included><strong>Unlimited documents</strong></FeatureItem>
               <FeatureItem included>Unlimited saved documents</FeatureItem>
               <FeatureItem included><strong>Bulk generate all 6 at once</strong></FeatureItem>
-              <FeatureItem included>Invite up to 5 team members</FeatureItem>
               <FeatureItem included>Priority support</FeatureItem>
+              <FeatureItem included>Early access to new features</FeatureItem>
             </ul>
           </Card>
         </div>
@@ -282,13 +281,13 @@ export default function PricingPage() {
                   premium={true} 
                 />
                 <ComparisonRow 
-                  feature="Team members" 
+                  feature="Priority support" 
                   free={false} 
                   pro={false} 
-                  premium="Up to 5" 
+                  premium={true} 
                 />
                 <ComparisonRow 
-                  feature="Priority support" 
+                  feature="Early access to features" 
                   free={false} 
                   pro={false} 
                   premium={true} 
