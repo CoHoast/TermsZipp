@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Zap, Mail, User, MessageSquare, Send, Check, AlertCircle,
+  Mail, User, MessageSquare, Send, Check, AlertCircle,
   HelpCircle, FileText, CreditCard
 } from "lucide-react";
 
@@ -28,18 +29,32 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
+  const getTopicName = (id: string) => {
+    return topics.find(t => t.id === id)?.name || "General Inquiry";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      // TODO: Send to BLUPRYNT dashboard / Supabase
-      // For now, save to Supabase contact_submissions table
-      console.log("Contact form:", { name, email, topic, message });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          subject: getTopicName(topic),
+          message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
       
       setSubmitted(true);
       setName("");
@@ -47,7 +62,7 @@ export default function ContactPage() {
       setMessage("");
       setTopic("general");
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -61,8 +76,11 @@ export default function ContactPage() {
             <Check className="h-8 w-8 text-green-600" />
           </div>
           <h1 className="text-2xl font-bold mb-2">Message Sent!</h1>
-          <p className="text-muted-foreground mb-6">
-            Thanks for reaching out. We'll get back to you as soon as possible.
+          <p className="text-muted-foreground mb-2">
+            Thanks for reaching out! We've sent you a confirmation email.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            We'll get back to you within 24-48 hours.
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" asChild>
@@ -79,30 +97,6 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="brand-gradient rounded-lg p-1.5">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-xl">
-                Terms<span className="text-teal-600">Zipp</span>
-              </span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-                Generators
-              </Link>
-              <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground">
-                Pricing
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
           {/* Hero */}
@@ -209,7 +203,7 @@ export default function ContactPage() {
           {/* FAQ Link */}
           <p className="text-center text-sm text-muted-foreground mt-6">
             Looking for quick answers?{" "}
-            <Link href="/pricing#faq" className="text-teal-600 hover:text-teal-700">
+            <Link href="/faq" className="text-teal-600 hover:text-teal-700">
               Check our FAQ
             </Link>
           </p>

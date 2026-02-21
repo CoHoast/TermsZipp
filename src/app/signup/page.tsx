@@ -83,6 +83,17 @@ function SignupContent() {
       return;
     }
 
+    // Send welcome email
+    try {
+      await fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, plan: selectedPlan }),
+      });
+    } catch (e) {
+      console.error('Failed to send welcome email:', e);
+    }
+
     // If free plan, go straight to dashboard
     if (selectedPlan === "free") {
       router.push("/dashboard");
