@@ -12,9 +12,9 @@ interface DocumentPreviewGateProps {
 }
 
 export function DocumentPreviewGate({ content, documentType }: DocumentPreviewGateProps) {
-  // Split content into lines and show first ~25%
+  // Split content into lines and show first ~50% (more generous preview)
   const lines = content.split('\n');
-  const previewLineCount = Math.max(Math.floor(lines.length * 0.25), 15);
+  const previewLineCount = Math.max(Math.floor(lines.length * 0.5), 25);
   const previewContent = lines.slice(0, previewLineCount).join('\n');
   const hasMoreContent = lines.length > previewLineCount;
 
@@ -29,8 +29,8 @@ export function DocumentPreviewGate({ content, documentType }: DocumentPreviewGa
           </div>
         </div>
         
-        {/* Preview Content */}
-        <div className="bg-slate-50 rounded-lg p-6 relative">
+        {/* Preview Content - Scrollable */}
+        <div className="bg-slate-50 rounded-lg p-6 relative max-h-[500px] overflow-y-auto">
           <div className="prose prose-sm prose-slate max-w-none">
             <ReactMarkdown
               components={{
@@ -153,7 +153,7 @@ export function DocumentPreviewGate({ content, documentType }: DocumentPreviewGa
           <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="text-muted-foreground">
-              <strong className="text-foreground">This preview shows approximately 25% of your document.</strong> The full {documentType.toLowerCase()} includes additional sections covering data security, retention policies, user rights, contact information, and more — all customized based on your selections.
+              <strong className="text-foreground">This preview shows approximately 50% of your document.</strong> The full {documentType.toLowerCase()} includes additional sections covering data security, retention policies, user rights, contact information, and more — all customized based on your selections.
             </p>
           </div>
         </div>
