@@ -457,7 +457,7 @@ Website: ${formData.websiteUrl || "[Website URL]"}
                 content={generatedEULA} 
                 documentType="EULA"
                 documentTypeSlug="eula"
-                formData={formData as Record<string, unknown>}
+                formData={{ ...formData }}
               />
               <Card className="p-4 bg-amber-50 border-amber-200">
                 <div className="flex gap-3">

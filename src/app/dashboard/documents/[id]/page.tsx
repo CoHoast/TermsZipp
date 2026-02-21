@@ -54,7 +54,7 @@ export default function DocumentEditPage() {
   const router = useRouter();
   const documentId = params.id as string;
 
-  const [document, setDocument] = useState<Document | null>(null);
+  const [savedDoc, setSavedDoc] = useState<Document | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -89,7 +89,7 @@ export default function DocumentEditPage() {
         return;
       }
 
-      setDocument(data);
+      setSavedDoc(data);
       setTitle(data.title);
       setContent(data.content || "");
       setLoading(false);
@@ -99,7 +99,7 @@ export default function DocumentEditPage() {
   }, [documentId, router]);
 
   const handleSave = async () => {
-    if (!document) return;
+    if (!savedDoc) return;
     
     setSaving(true);
     const supabase = createClient();
@@ -111,7 +111,7 @@ export default function DocumentEditPage() {
         content,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', document.id);
+      .eq('id', savedDoc.id);
 
     if (error) {
       setError("Failed to save document");
@@ -119,13 +119,13 @@ export default function DocumentEditPage() {
       return;
     }
 
-    setDocument({ ...document, title, content, updated_at: new Date().toISOString() });
+    setSavedDoc({ ...savedDoc, title, content, updated_at: new Date().toISOString() });
     setSaving(false);
     setEditMode(false);
   };
 
   const handleDelete = async () => {
-    if (!document) return;
+    if (!savedDoc) return;
     
     setDeleting(true);
     const supabase = createClient();
@@ -133,7 +133,7 @@ export default function DocumentEditPage() {
     const { error } = await supabase
       .from('documents')
       .delete()
-      .eq('id', document.id);
+      .eq('id', savedDoc.id);
 
     if (error) {
       setError("Failed to delete document");
@@ -153,7 +153,7 @@ export default function DocumentEditPage() {
   const handleDownloadMarkdown = () => {
     const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = window.document.createElement("a");
     a.href = url;
     a.download = `${title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.md`;
     a.click();
@@ -187,7 +187,7 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
     
     const blob = new Blob([htmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = window.document.createElement("a");
     a.href = url;
     a.download = `${title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.html`;
     a.click();
@@ -202,7 +202,7 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
     );
   }
 
-  if (error || !document) {
+  if (error || !savedDoc) {
     return (
       <div className="space-y-6">
         <Link href="/dashboard/documents" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
@@ -223,7 +223,7 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
     );
   }
 
-  const typeInfo = getTypeInfo(document.document_type);
+  const typeInfo = getTypeInfo(savedDoc.document_type);
   const Icon = typeInfo.icon;
 
   return (
@@ -250,7 +250,7 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
         <div className="flex items-center gap-2">
           {editMode ? (
             <>
-              <Button variant="outline" onClick={() => { setEditMode(false); setTitle(document.title); setContent(document.content || ""); }}>
+              <Button variant="outline" onClick={() => { setEditMode(false); setTitle(savedDoc.title); setContent(savedDoc.content || ""); }}>
                 Cancel
               </Button>
               <Button className="btn-gradient" onClick={handleSave} disabled={saving}>
@@ -340,7 +340,7 @@ ${content.replace(/^# /gm, '<h1>').replace(/^## /gm, '<h2>').replace(/^### /gm, 
               </Button>
               <div className="flex-1" />
               <span className="text-xs text-muted-foreground self-center">
-                Last updated: {new Date(document.updated_at || document.created_at).toLocaleDateString()}
+                Last updated: {new Date(savedDoc.updated_at || savedDoc.created_at).toLocaleDateString()}
               </span>
             </div>
           </Card>

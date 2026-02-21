@@ -90,16 +90,23 @@ export function DocumentPreviewGate({
       document_title: documentTitle,
     });
 
-    // Increment monthly count
-    await supabase.rpc('increment_document_count', { user_id: user.id }).catch(() => {
-      // If RPC doesn't exist, update directly
-      supabase
+    // Increment monthly count (simple increment - could use RPC for atomicity in production)
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('documents_generated_this_month')
+        .eq('id', user.id)
+        .single();
+      
+      await supabase
         .from('profiles')
         .update({ 
-          documents_generated_this_month: (user as any).documents_generated_this_month + 1 || 1 
+          documents_generated_this_month: (profile?.documents_generated_this_month || 0) + 1 
         })
         .eq('id', user.id);
-    });
+    } catch (e) {
+      // Ignore increment errors
+    }
 
     setSavedDocId(doc.id);
     setSaved(true);

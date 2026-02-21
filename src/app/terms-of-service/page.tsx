@@ -472,7 +472,7 @@ Website: ${formData.websiteUrl || "[Website URL]"}
                 content={generatedTerms} 
                 documentType="Terms of Service"
                 documentTypeSlug="terms-of-service"
-                formData={formData as Record<string, unknown>}
+                formData={{ ...formData }}
               />
 
               {/* Disclaimer */}

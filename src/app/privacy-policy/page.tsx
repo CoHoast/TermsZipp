@@ -412,7 +412,7 @@ Website: ${formData.websiteUrl || "[Website URL]"}
                 content={generatedPolicy} 
                 documentType="Privacy Policy"
                 documentTypeSlug="privacy-policy"
-                formData={formData as Record<string, unknown>}
+                formData={{ ...formData }}
               />
 
               {/* PRO/PREMIUM TIER: Full Document (hidden for now, will show when authenticated as paid user)
