@@ -15,6 +15,28 @@ export const metadata: Metadata = {
     shortcut: "/logo.svg",
     apple: "/logo.svg",
   },
+  openGraph: {
+    title: "TermsZipp - Free Privacy Policy & Terms Generator",
+    description: "Generate professional privacy policies, terms of service, and other legal documents for your website in seconds.",
+    url: "https://termszipp.com",
+    siteName: "TermsZipp",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "TermsZipp - Legal Document Generator",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TermsZipp - Free Privacy Policy & Terms Generator",
+    description: "Generate professional legal documents for your website in seconds.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

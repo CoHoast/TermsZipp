@@ -2,11 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 
 const zippFamily = [
-  { name: "QRZipp", href: "https://qrzipp.com", prefix: "QR", gradient: "from-emerald-600 to-teal-500", boltColor: "#10b981", desc: "QR Codes" },
-  { name: "PDFZipp", href: "https://pdfzipp.com", prefix: "PDF", gradient: "from-blue-800 via-blue-500 to-cyan-500", boltColor: "#3b82f6", desc: "PDF Tools" },
-  { name: "CalcZipp", href: "https://calczipp.com", prefix: "Calc", gradient: "from-amber-500 via-orange-500 to-red-500", boltColor: "#f97316", desc: "Calculators" },
-  { name: "PIXZipp", href: "https://pixzipp.com", prefix: "PIX", gradient: "from-purple-600 via-pink-500 to-rose-500", boltColor: "#a855f7", desc: "Image Tools" },
-  { name: "TermsZipp", href: "/", prefix: "Terms", gradient: "from-cyan-500 via-teal-500 to-emerald-500", boltColor: "#0d9488", desc: "Legal Docs", current: true },
+  { name: "QRZipp", href: "https://qrzipp.com", prefix: "QR", gradient: "from-emerald-600 to-teal-500", boltColor: "#10b981", desc: "QR Codes", logo: "/qrzipp-logo.png" },
+  { name: "PDFZipp", href: "https://pdfzipp.com", prefix: "PDF", gradient: "from-blue-800 via-blue-500 to-cyan-500", boltColor: "#3b82f6", desc: "PDF Tools", logo: "/pdfzipp-logo.png" },
+  { name: "CalcZipp", href: "https://calczipp.com", prefix: "Calc", gradient: "from-amber-500 via-orange-500 to-red-500", boltColor: "#f97316", desc: "Calculators", logo: "/calczipp-logo.png" },
+  { name: "PIXZipp", href: "https://pixzipp.com", prefix: "PIX", gradient: "from-purple-600 via-pink-500 to-rose-500", boltColor: "#a855f7", desc: "Image Tools", logo: "/pixzipp-logo.png" },
+  { name: "TermsZipp", href: "/", prefix: "Terms", gradient: "from-cyan-500 via-teal-500 to-emerald-500", boltColor: "#0d9488", desc: "Legal Docs", current: true, logo: "/termszipp-logo.png" },
 ];
 
 export function Footer() {
@@ -85,7 +85,7 @@ export function Footer() {
           <p className="text-center text-xs tracking-widest text-muted-foreground mb-6">
             PART OF THE ZIPP FAMILY
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10">
             {zippFamily.map((product) => (
               <Link
                 key={product.name}
@@ -94,13 +94,14 @@ export function Footer() {
                 rel={product.current ? undefined : "noopener noreferrer"}
                 className="flex flex-col items-center text-center group"
               >
-                <div className="flex items-center gap-0.5 mb-1 group-hover:opacity-70 transition-opacity">
-                  <svg viewBox="0 0 24 32" className="w-5 h-7" fill="none">
-                    <path d="M5 2H20L11 14H19L4 30L9 16H2L5 2Z" fill={product.boltColor} />
-                  </svg>
-                  <span className="text-xl font-bold text-gray-900">
-                    {product.prefix}<span className={`bg-gradient-to-r ${product.gradient} bg-clip-text text-transparent font-extrabold`}>Zipp</span>
-                  </span>
+                <div className="mb-1 group-hover:opacity-70 transition-opacity">
+                  <Image 
+                    src={product.logo} 
+                    alt={product.name} 
+                    width={140} 
+                    height={40}
+                    className="h-8 w-auto object-contain"
+                  />
                 </div>
                 <span className="text-xs text-muted-foreground">{product.desc}</span>
                 {product.current && (
