@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   title: "TermsZipp - Free Privacy Policy & Terms Generator",
   description: "Generate professional privacy policies, terms of service, cookie policies, and other legal documents for your website in seconds. Free and easy to use.",
   keywords: "privacy policy generator, terms of service generator, terms and conditions, cookie policy, GDPR, legal documents, website policy",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
