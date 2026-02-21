@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Sparkles, ArrowRight, FileText, Check, Save, Download, Copy, Loader2, FileDown } from "lucide-react";
+import { Lock, Sparkles, ArrowRight, Check, Save, Download, Copy, Loader2, FileDown, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { createClient } from "@/lib/supabase";
@@ -15,8 +15,8 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 interface DocumentPreviewGateProps {
   content: string;
   documentType: string;
-  documentTypeSlug?: string; // e.g., "privacy-policy"
-  formData?: Record<string, unknown>; // Original form data to save
+  documentTypeSlug?: string;
+  formData?: Record<string, unknown>;
 }
 
 export function DocumentPreviewGate({ 
@@ -39,7 +39,6 @@ export function DocumentPreviewGate({
       const { data: { user: authUser } } = await supabase.auth.getUser();
       
       if (authUser) {
-        // Get plan from profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('plan')
@@ -64,7 +63,6 @@ export function DocumentPreviewGate({
     setSaving(true);
     const supabase = createClient();
 
-    // Save document
     const { data: doc, error } = await supabase
       .from('documents')
       .insert({
@@ -83,7 +81,6 @@ export function DocumentPreviewGate({
       return;
     }
 
-    // Log activity
     await supabase.from('activity_log').insert({
       user_id: user.id,
       action: 'created',
@@ -92,7 +89,6 @@ export function DocumentPreviewGate({
       document_title: documentTitle,
     });
 
-    // Increment monthly count (simple increment - could use RPC for atomicity in production)
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -120,7 +116,6 @@ export function DocumentPreviewGate({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
 
-    // Log download activity
     if (user && isPaidUser) {
       const supabase = createClient();
       await supabase.from('activity_log').insert({
@@ -175,7 +170,6 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
     a.click();
     URL.revokeObjectURL(url);
 
-    // Log download activity
     if (user && isPaidUser) {
       const supabase = createClient();
       supabase.from('activity_log').insert({
@@ -195,11 +189,9 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
     const maxWidth = pageWidth - margin * 2;
     let y = 20;
 
-    // Parse markdown and add to PDF
     const lines = content.split('\n');
     
     for (const line of lines) {
-      // Check if we need a new page
       if (y > 270) {
         doc.addPage();
         y = 20;
@@ -240,13 +232,12 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
         doc.text(splitText, margin, y);
         y += splitText.length * 5;
       } else {
-        y += 3; // Empty line spacing
+        y += 3;
       }
     }
 
     doc.save(`${documentTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`);
 
-    // Log activity
     if (user && isPaidUser) {
       const supabase = createClient();
       supabase.from('activity_log').insert({
@@ -260,7 +251,6 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
   };
 
   const handleDownloadWord = async () => {
-    // Parse markdown into docx paragraphs
     const paragraphs: Paragraph[] = [];
     const lines = content.split('\n');
 
@@ -286,7 +276,6 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
           bullet: { level: 0 },
         }));
       } else if (line.trim()) {
-        // Handle bold text
         const parts = line.split(/(\*\*.*?\*\*)/g);
         const children = parts.map(part => {
           if (part.startsWith('**') && part.endsWith('**')) {
@@ -312,7 +301,6 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
     a.click();
     URL.revokeObjectURL(url);
 
-    // Log activity
     if (user && isPaidUser) {
       const supabase = createClient();
       supabase.from('activity_log').insert({
@@ -329,9 +317,8 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
   const lines = content.split('\n');
   const previewLineCount = Math.max(Math.floor(lines.length * 0.5), 25);
   const previewContent = lines.slice(0, previewLineCount).join('\n');
-  const hasMoreContent = lines.length > previewLineCount;
 
-  // Still loading - show skeleton
+  // Loading skeleton
   if (loading) {
     return (
       <Card className="p-6">
@@ -345,7 +332,7 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
     );
   }
 
-  // PAID USER: Show full document with save/export
+  // PAID USER: Full document with save/export
   if (isPaidUser) {
     return (
       <div className="space-y-4">
@@ -372,7 +359,6 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
             </div>
           </div>
           
-          {/* Full Document Content */}
           <div className="bg-slate-50 rounded-lg p-6 max-h-[500px] overflow-y-auto mb-4">
             <div className="prose prose-sm prose-slate max-w-none">
               <ReactMarkdown
@@ -408,7 +394,6 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
             </div>
           </div>
 
-          {/* Save Section */}
           {!saved ? (
             <div className="border-t pt-4">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -450,151 +435,143 @@ ${content.replace(/^# (.*$)/gm, '<h1>$1</h1>')
             </div>
           )}
         </Card>
+
+        {/* Legal Disclaimer for paid users */}
+        <div className="flex items-start gap-2 text-xs text-muted-foreground px-1">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <p>This document is a template and may not cover all legal requirements. We recommend having it reviewed by a qualified attorney.</p>
+        </div>
       </div>
     );
   }
 
-  // FREE USER: Show preview with upgrade CTA
+  // FREE USER: Preview with fade + inline upgrade
   return (
     <div className="space-y-4">
-      <Card className="p-6 relative overflow-hidden">
+      <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Your {documentType}</h2>
           <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
             <Lock className="h-4 w-4" />
-            Preview Only
+            Preview
           </div>
         </div>
         
-        {/* Preview Content - Scrollable */}
-        <div className="bg-slate-50 rounded-lg p-6 relative max-h-[500px] overflow-y-auto">
-          <div className="prose prose-sm prose-slate max-w-none">
-            <ReactMarkdown
-              components={{
-                h1: ({ children }) => (
-                  <h1 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-base font-medium text-slate-700 mt-4 mb-2">{children}</h3>
-                ),
-                p: ({ children }) => (
-                  <p className="text-slate-600 leading-relaxed mb-3">{children}</p>
-                ),
-                ul: ({ children }) => (
-                  <ul className="list-disc list-inside space-y-1 mb-3 text-slate-600">{children}</ul>
-                ),
-                li: ({ children }) => (
-                  <li className="text-slate-600">{children}</li>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-semibold text-slate-800">{children}</strong>
-                ),
-                hr: () => (
-                  <hr className="my-4 border-slate-200" />
-                ),
-              }}
-            >
-              {previewContent}
-            </ReactMarkdown>
+        {/* Preview Content with Fade */}
+        <div className="relative">
+          <div className="bg-slate-50 rounded-lg p-6 max-h-[450px] overflow-y-auto">
+            <div className="prose prose-sm prose-slate max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-base font-medium text-slate-700 mt-4 mb-2">{children}</h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="text-slate-600 leading-relaxed mb-3">{children}</p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc list-inside space-y-1 mb-3 text-slate-600">{children}</ul>
+                  ),
+                  li: ({ children }) => (
+                    <li className="text-slate-600">{children}</li>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-slate-800">{children}</strong>
+                  ),
+                  hr: () => (
+                    <hr className="my-4 border-slate-200" />
+                  ),
+                }}
+              >
+                {previewContent}
+              </ReactMarkdown>
+            </div>
           </div>
           
-          {/* Fade Overlay */}
-          {hasMoreContent && (
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent" />
-          )}
+          {/* Strong fade gradient overlay */}
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-white via-white/95 to-transparent rounded-b-lg pointer-events-none" />
         </div>
 
-        {/* Locked Content Overlay */}
-        {hasMoreContent && (
-          <div className="mt-4 relative">
-            <div className="bg-slate-100 rounded-lg p-6 relative overflow-hidden">
-              <div className="blur-sm select-none pointer-events-none text-slate-400">
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Data Security</h3>
-                  <p className="text-sm leading-relaxed">We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.</p>
-                  <h3 className="text-base font-medium">Data Retention</h3>
-                  <p className="text-sm leading-relaxed">We retain your personal data only for as long as necessary to fulfill the purposes outlined in this policy, unless a longer retention period is required by law.</p>
-                </div>
+        {/* Inline Upgrade CTA - Inside the document area */}
+        <div className="relative -mt-24 pt-8 pb-2">
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-6 mx-2 shadow-sm">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center mb-3 shadow-lg">
+                <Lock className="h-6 w-6 text-white" />
               </div>
-              
-              {/* Lock Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-100/80 backdrop-blur-[2px]">
-                <div className="text-center p-6">
-                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-4">
-                    <Lock className="h-8 w-8 text-slate-500" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">Full Document Locked</h3>
-                  <p className="text-muted-foreground text-sm mb-4 max-w-xs">
-                    Upgrade to Pro to unlock the complete {documentType.toLowerCase()}, export options, and more.
-                  </p>
-                </div>
+              <h3 className="font-semibold text-lg mb-1">Upgrade to See Full Document</h3>
+              <p className="text-muted-foreground text-sm mb-4 max-w-md">
+                You&apos;re viewing ~50% of your {documentType.toLowerCase()}. Unlock the complete document with all sections, plus export to PDF & Word.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <Button className="btn-gradient" size="lg" asChild>
+                  <Link href={user ? "/dashboard/billing" : "/signup?plan=pro"}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Unlock Full Document
+                  </Link>
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Starting at <strong className="text-foreground">$9/mo</strong>
+                </span>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </Card>
 
-      {/* Upgrade CTA Card */}
-      <Card className="p-6 border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
+      {/* Compact Benefits + Disclaimer */}
+      <div className="bg-gradient-to-br from-teal-50/50 to-cyan-50/50 border border-teal-100 rounded-xl p-5">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Benefits */}
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5 text-teal-600" />
-              <h3 className="font-semibold text-lg">Unlock Full Document</h3>
+            <h4 className="font-medium text-sm mb-3 text-teal-800">What you get with Pro:</h4>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-teal-600 shrink-0" />
+                <span>Full document access</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-teal-600 shrink-0" />
+                <span>PDF & Word export</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-teal-600 shrink-0" />
+                <span>Save to dashboard</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-teal-600 shrink-0" />
+                <span>10 docs per month</span>
+              </div>
             </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              Get the complete {documentType.toLowerCase()} with all sections, plus:
-            </p>
-            <ul className="grid grid-cols-2 gap-2 text-sm">
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-teal-600" />
-                Full document access
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-teal-600" />
-                Word & PDF export
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-teal-600" />
-                No branding in docs
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-teal-600" />
-                Save to dashboard
-              </li>
-            </ul>
           </div>
-          <div className="flex flex-col gap-3">
-            <div className="text-center md:text-right">
-              <div className="text-3xl font-bold text-teal-700">$9<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
-              <p className="text-xs text-muted-foreground">or $79/year (save 27%)</p>
-            </div>
-            <Button className="btn-gradient" size="lg" asChild>
-              <Link href={user ? "/dashboard/billing" : "/signup?plan=pro"}>
-                {user ? "Upgrade to Pro" : "Get Started"} <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Link href="/pricing" className="text-sm text-center text-muted-foreground hover:text-foreground">
-              Compare all plans →
+          
+          {/* Divider */}
+          <div className="hidden md:block w-px bg-teal-200" />
+          
+          {/* Pricing + CTA */}
+          <div className="flex flex-col items-center justify-center text-center md:px-4">
+            <div className="text-2xl font-bold text-teal-700">$9<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+            <p className="text-xs text-muted-foreground mb-2">or $79/year (save 27%)</p>
+            <Link href="/pricing" className="text-xs text-teal-600 hover:underline">
+              Compare plans →
             </Link>
           </div>
         </div>
-      </Card>
-
-      {/* What You'll Get */}
-      <Card className="p-4 bg-slate-50 border-dashed">
-        <div className="flex items-start gap-3">
-          <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="text-muted-foreground">
-              <strong className="text-foreground">This preview shows approximately 50% of your document.</strong> The full {documentType.toLowerCase()} includes additional sections covering data security, retention policies, user rights, contact information, and more — all customized based on your selections.
-            </p>
-          </div>
+        
+        {/* Compact Legal Disclaimer */}
+        <div className="mt-4 pt-4 border-t border-teal-100">
+          <p className="text-xs text-muted-foreground flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+            <span><strong>Disclaimer:</strong> This is a template for informational purposes. We recommend having legal documents reviewed by a qualified attorney before use.</span>
+          </p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
