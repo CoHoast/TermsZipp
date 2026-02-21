@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { 
   HelpCircle, Mail, MessageSquare, ChevronDown, ChevronUp,
-  FileText, Shield, CreditCard, Users, Send, Loader2, Check,
+  FileText, Shield, CreditCard, Send, Loader2, Check,
   ExternalLink
 } from "lucide-react";
 
@@ -55,7 +55,7 @@ const faqs = [
     questions: [
       {
         q: "What's the difference between Free, Pro, and Premium?",
-        a: "Free users can preview documents but can't access the full content or export. Pro ($9/mo) gives you full access to all documents, exports, and up to 25 documents per month. Premium ($19/mo) includes unlimited documents, bulk generation, and team features for up to 5 members."
+        a: "Free users can preview documents but can't access the full content or export. Pro ($9/mo) gives you full access to all documents, exports, and up to 25 documents per month. Premium ($19/mo) includes unlimited documents, bulk generation, and priority support."
       },
       {
         q: "Can I cancel my subscription anytime?",
@@ -64,24 +64,6 @@ const faqs = [
       {
         q: "Do you offer refunds?",
         a: "We offer a 7-day money-back guarantee on all paid plans. If you're not satisfied, contact us within 7 days of your purchase for a full refund."
-      },
-    ]
-  },
-  {
-    category: "Team Features",
-    icon: Users,
-    questions: [
-      {
-        q: "How do team invites work?",
-        a: "Premium users can invite up to 5 team members. Go to the Team page, enter their email, and select their role. They'll receive an invitation email to join your team. Team members share your document library but have their own login credentials."
-      },
-      {
-        q: "What are the different team roles?",
-        a: "View Only: Can view documents but not edit or create. View & Edit: Can view and edit existing documents, but can't delete or manage team. Full Admin: Full access including creating, deleting documents, and managing team members."
-      },
-      {
-        q: "Can team members have their own company profiles?",
-        a: "Team members share the organization's company profile for document generation. Only admins can modify the company profile in Settings."
       },
     ]
   },

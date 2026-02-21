@@ -34,7 +34,7 @@ const plans = {
   premium: {
     name: "Premium",
     price: "$19/mo",
-    description: "For agencies & teams",
+    description: "For power users & agencies",
     icon: Crown,
     iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
@@ -192,7 +192,7 @@ function SignupContent() {
                 ? "Preview documents only. Upgrade anytime."
                 : selectedPlan === "pro"
                 ? "Full documents, exports, 25/month"
-                : "Unlimited documents, bulk generate, team features"
+                : "Unlimited documents, bulk generate, priority support"
               }
             </p>
           </div>
