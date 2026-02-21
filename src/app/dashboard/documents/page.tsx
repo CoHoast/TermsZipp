@@ -17,44 +17,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // TODO: Get from database
-const documents = [
-  {
-    id: "1",
-    title: "Privacy Policy - My SaaS",
-    type: "privacy-policy",
-    isFavorite: true,
-    downloadCount: 3,
-    createdAt: "2024-02-21T10:30:00Z",
-    updatedAt: "2024-02-21T10:30:00Z",
-  },
-  {
-    id: "2",
-    title: "Terms of Service - My SaaS",
-    type: "terms-of-service",
-    isFavorite: false,
-    downloadCount: 2,
-    createdAt: "2024-02-21T09:15:00Z",
-    updatedAt: "2024-02-21T09:15:00Z",
-  },
-  {
-    id: "3",
-    title: "Cookie Policy - My SaaS",
-    type: "cookie-policy",
-    isFavorite: false,
-    downloadCount: 1,
-    createdAt: "2024-02-20T14:20:00Z",
-    updatedAt: "2024-02-20T14:20:00Z",
-  },
-  {
-    id: "4",
-    title: "EULA - Mobile App",
-    type: "eula",
-    isFavorite: true,
-    downloadCount: 5,
-    createdAt: "2024-02-19T11:00:00Z",
-    updatedAt: "2024-02-19T16:30:00Z",
-  },
-];
+const documents: {
+  id: string;
+  title: string;
+  type: string;
+  isFavorite: boolean;
+  downloadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}[] = [];
 
 const documentTypes = [
   { type: "privacy-policy", name: "Privacy Policy", icon: Shield },
