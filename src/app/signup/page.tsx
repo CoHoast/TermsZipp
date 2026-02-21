@@ -2,13 +2,14 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, ArrowRight, Check, Building2, Crown, Zap } from "lucide-react";
-import Image from "next/image";
+import { createClient } from "@/lib/supabase";
 
 type PlanType = "free" | "pro" | "premium";
 
@@ -32,7 +33,7 @@ const plans = {
   },
   premium: {
     name: "Premium",
-    price: "$29/mo",
+    price: "$19/mo",
     description: "For agencies & teams",
     icon: Crown,
     iconBg: "bg-amber-100",
@@ -42,6 +43,7 @@ const plans = {
 
 function SignupContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("pro");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -61,19 +63,59 @@ function SignupContent() {
     setLoading(true);
     setError("");
     
-    // TODO: Implement Supabase auth
-    console.log("Signup with:", { name, email, password, plan: selectedPlan });
+    const supabase = createClient();
     
-    // Simulate signup
-    setTimeout(() => {
+    // Sign up the user
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          plan: selectedPlan,
+        },
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
-      if (selectedPlan === "free") {
-        window.location.href = "/dashboard";
-      } else {
-        // Redirect to Stripe checkout
-        window.location.href = "/dashboard?setup=billing";
+      return;
+    }
+
+    // If free plan, go straight to dashboard
+    if (selectedPlan === "free") {
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
+    // For paid plans, redirect to Stripe checkout
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          userId: data.user?.id,
+          email: email,
+        }),
+      });
+
+      const { url, error: checkoutError } = await response.json();
+      
+      if (checkoutError) {
+        setError(checkoutError);
+        setLoading(false);
+        return;
       }
-    }, 1000);
+
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+    } catch (err) {
+      setError("Failed to create checkout session. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (

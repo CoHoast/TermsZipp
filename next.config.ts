@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
+  // Removed 'export' - need server for API routes (auth, Stripe)
   images: {
     unoptimized: true,
   },

@@ -3,13 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,15 +23,22 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     
-    // TODO: Implement Supabase auth
-    console.log("Login with:", email, password);
+    const supabase = createClient();
     
-    // Simulate login
-    setTimeout(() => {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
       setLoading(false);
-      // Redirect to dashboard
-      window.location.href = "/dashboard";
-    }, 1000);
+      return;
+    }
+
+    // Redirect to dashboard on success
+    router.push("/dashboard");
+    router.refresh();
   };
 
   return (

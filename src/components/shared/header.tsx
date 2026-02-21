@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, Shield, FileText, Cookie, AlertTriangle, RefreshCw, ScrollText, User, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const generators = [
   { name: "Privacy Policy", href: "/privacy-policy", icon: Shield },
@@ -18,12 +20,36 @@ const generators = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
   
-  // Check if user is on dashboard (logged in state)
-  // TODO: Replace with actual auth check from Supabase
-  const isLoggedIn = pathname?.startsWith("/dashboard");
-  const userName = "Chris"; // TODO: Get from auth context
+  useEffect(() => {
+    const supabase = createClient();
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl">
@@ -81,7 +107,9 @@ export function Header() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
-          {isLoggedIn ? (
+          {loading ? (
+            <div className="w-20 h-8 bg-slate-100 animate-pulse rounded-lg" />
+          ) : user ? (
             <>
               {/* Logged In State */}
               <div className="relative group">
@@ -109,10 +137,7 @@ export function Header() {
                   </Link>
                   <hr className="my-2" />
                   <button
-                    onClick={() => {
-                      // TODO: Implement logout with Supabase
-                      window.location.href = "/";
-                    }}
+                    onClick={handleLogout}
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors w-full text-left text-red-600"
                   >
                     <LogOut className="h-4 w-4" />
@@ -181,7 +206,7 @@ export function Header() {
             
             {/* Auth Section */}
             <div className="pt-4 border-t space-y-2">
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <div className="flex items-center gap-2 px-3 py-2">
                     <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
@@ -197,7 +222,8 @@ export function Header() {
                   </Link>
                   <button
                     onClick={() => {
-                      window.location.href = "/";
+                      handleLogout();
+                      setMobileMenuOpen(false);
                     }}
                     className="block w-full text-left px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
                   >
