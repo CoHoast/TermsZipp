@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Lock, Sparkles, ArrowRight, FileText, Download, Check } from "lucide-react";
+import { Lock, Sparkles, ArrowRight, FileText, Check } from "lucide-react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 
 interface DocumentPreviewGateProps {
   content: string;
@@ -13,7 +14,7 @@ interface DocumentPreviewGateProps {
 export function DocumentPreviewGate({ content, documentType }: DocumentPreviewGateProps) {
   // Split content into lines and show first ~25%
   const lines = content.split('\n');
-  const previewLineCount = Math.max(Math.floor(lines.length * 0.25), 15); // At least 15 lines
+  const previewLineCount = Math.max(Math.floor(lines.length * 0.25), 15);
   const previewContent = lines.slice(0, previewLineCount).join('\n');
   const hasMoreContent = lines.length > previewLineCount;
 
@@ -30,28 +31,56 @@ export function DocumentPreviewGate({ content, documentType }: DocumentPreviewGa
         
         {/* Preview Content */}
         <div className="bg-slate-50 rounded-lg p-6 relative">
-          <div className="legal-document whitespace-pre-wrap font-mono text-sm">
-            {previewContent}
+          <div className="prose prose-sm prose-slate max-w-none">
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => (
+                  <h1 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">{children}</h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-lg font-semibold text-slate-800 mt-6 mb-3">{children}</h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-base font-medium text-slate-700 mt-4 mb-2">{children}</h3>
+                ),
+                p: ({ children }) => (
+                  <p className="text-slate-600 leading-relaxed mb-3">{children}</p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc list-inside space-y-1 mb-3 text-slate-600">{children}</ul>
+                ),
+                li: ({ children }) => (
+                  <li className="text-slate-600">{children}</li>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold text-slate-800">{children}</strong>
+                ),
+                hr: () => (
+                  <hr className="my-4 border-slate-200" />
+                ),
+              }}
+            >
+              {previewContent}
+            </ReactMarkdown>
           </div>
           
           {/* Fade Overlay */}
           {hasMoreContent && (
-            <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent" />
           )}
         </div>
 
         {/* Locked Content Overlay */}
         {hasMoreContent && (
           <div className="mt-4 relative">
-            {/* Blurred placeholder text */}
             <div className="bg-slate-100 rounded-lg p-6 relative overflow-hidden">
-              <div className="blur-sm select-none pointer-events-none text-slate-400 font-mono text-sm leading-relaxed">
-                <p>## Data Security</p>
-                <p className="mt-2">We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet is 100% secure.</p>
-                <p className="mt-4">## Data Retention</p>
-                <p className="mt-2">We retain your personal data only for as long as necessary to fulfill the purposes outlined in this policy, unless a longer retention period is required by law.</p>
-                <p className="mt-4">## Changes to This Policy</p>
-                <p className="mt-2">We may update this policy from time to time. We will notify you of any changes by posting the new policy on this page...</p>
+              <div className="blur-sm select-none pointer-events-none text-slate-400">
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium">Data Security</h3>
+                  <p className="text-sm leading-relaxed">We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.</p>
+                  <h3 className="text-base font-medium">Data Retention</h3>
+                  <p className="text-sm leading-relaxed">We retain your personal data only for as long as necessary to fulfill the purposes outlined in this policy, unless a longer retention period is required by law.</p>
+                </div>
               </div>
               
               {/* Lock Overlay */}
