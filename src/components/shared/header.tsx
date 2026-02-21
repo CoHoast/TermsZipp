@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, Shield, FileText, Cookie, AlertTriangle, RefreshCw, ScrollText } from "lucide-react";
+import { Menu, X, ChevronDown, Shield, FileText, Cookie, AlertTriangle, RefreshCw, ScrollText, User, LogOut } from "lucide-react";
 import { useState } from "react";
 
 const generators = [
@@ -17,6 +18,12 @@ const generators = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  
+  // Check if user is on dashboard (logged in state)
+  // TODO: Replace with actual auth check from Supabase
+  const isLoggedIn = pathname?.startsWith("/dashboard");
+  const userName = "Chris"; // TODO: Get from auth context
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl">
@@ -74,12 +81,57 @@ export function Header() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Login
-          </Link>
-          <Button className="btn-gradient" asChild>
-            <Link href="/signup">Sign Up</Link>
-          </Button>
+          {isLoggedIn ? (
+            <>
+              {/* Logged In State */}
+              <div className="relative group">
+                <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
+                  <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <span>Hi, {userName}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                <div className="absolute top-full right-0 mt-1 w-48 py-2 bg-white border border-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors"
+                  >
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Settings</span>
+                  </Link>
+                  <hr className="my-2" />
+                  <button
+                    onClick={() => {
+                      // TODO: Implement logout with Supabase
+                      window.location.href = "/";
+                    }}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors w-full text-left text-red-600"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="text-sm font-medium">Logout</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Logged Out State */}
+              <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Login
+              </Link>
+              <Button className="btn-gradient" asChild>
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -127,14 +179,41 @@ export function Header() {
               Contact
             </Link>
             
-            {/* Auth Buttons */}
+            {/* Auth Section */}
             <div className="pt-4 border-t space-y-2">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-              </Button>
-              <Button className="btn-gradient w-full" asChild>
-                <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
-              </Button>
+              {isLoggedIn ? (
+                <>
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-medium">Hi, {userName}</span>
+                  </div>
+                  <Link href="/dashboard" className="block px-3 py-2 text-sm font-medium hover:bg-muted rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                    Dashboard
+                  </Link>
+                  <Link href="/dashboard/settings" className="block px-3 py-2 text-sm font-medium hover:bg-muted rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                    Settings
+                  </Link>
+                  <button
+                    onClick={() => {
+                      window.location.href = "/";
+                    }}
+                    className="block w-full text-left px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                  </Button>
+                  <Button className="btn-gradient w-full" asChild>
+                    <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>
