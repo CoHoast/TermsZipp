@@ -16,7 +16,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-1 mb-4">
+            <Link href="/" className="flex items-center gap-0.5 mb-4">
               <Image 
                 src="/logo.svg" 
                 alt="TermsZipp" 
