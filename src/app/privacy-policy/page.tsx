@@ -408,10 +408,11 @@ Website: ${formData.websiteUrl || "[Website URL]"}
               {/* TODO: Check user subscription status. For now, show preview gate (free tier) */}
               {/* When auth is added, this will conditionally render based on user.subscription */}
               
-              {/* FREE TIER: Preview Gate */}
               <DocumentPreviewGate 
                 content={generatedPolicy} 
-                documentType="Privacy Policy" 
+                documentType="Privacy Policy"
+                documentTypeSlug="privacy-policy"
+                formData={formData as Record<string, unknown>}
               />
 
               {/* PRO/PREMIUM TIER: Full Document (hidden for now, will show when authenticated as paid user)

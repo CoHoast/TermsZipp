@@ -320,10 +320,11 @@ Website: ${formData.websiteUrl || "[Website URL]"}
 
           {step === 3 && (
             <div className="space-y-4">
-              {/* FREE TIER: Preview Gate */}
               <DocumentPreviewGate 
                 content={generatedDisclaimer} 
-                documentType="Disclaimer" 
+                documentType="Disclaimer"
+                documentTypeSlug="disclaimer"
+                formData={formData as Record<string, unknown>}
               />
               <Card className="p-4 bg-amber-50 border-amber-200">
                 <div className="flex gap-3">

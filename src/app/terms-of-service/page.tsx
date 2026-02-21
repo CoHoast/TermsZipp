@@ -468,10 +468,11 @@ Website: ${formData.websiteUrl || "[Website URL]"}
           {/* Step 3: Generated Terms */}
           {step === 3 && (
             <div className="space-y-4">
-              {/* FREE TIER: Preview Gate */}
               <DocumentPreviewGate 
                 content={generatedTerms} 
-                documentType="Terms of Service" 
+                documentType="Terms of Service"
+                documentTypeSlug="terms-of-service"
+                formData={formData as Record<string, unknown>}
               />
 
               {/* Disclaimer */}
