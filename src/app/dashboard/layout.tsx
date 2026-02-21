@@ -7,17 +7,31 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { 
   FileText, CreditCard, Settings, LogOut, Menu, X,
-  Home, Plus, ChevronDown, User
+  Home, Plus, ChevronDown, User, Users, HelpCircle, Activity
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-const navItems = [
-  { name: "Overview", href: "/dashboard", icon: Home },
-  { name: "Documents", href: "/dashboard/documents", icon: FileText },
-  { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
-];
+const getNavItems = (plan: string) => {
+  const items = [
+    { name: "Overview", href: "/dashboard", icon: Home },
+    { name: "Documents", href: "/dashboard/documents", icon: FileText },
+    { name: "Activity", href: "/dashboard/activity", icon: Activity },
+  ];
+  
+  // Teams only for Premium users
+  if (plan === "premium") {
+    items.push({ name: "Team", href: "/dashboard/team", icon: Users });
+  }
+  
+  items.push(
+    { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
+    { name: "Settings", href: "/dashboard/settings", icon: Settings },
+    { name: "Help", href: "/dashboard/help", icon: HelpCircle },
+  );
+  
+  return items;
+};
 
 export default function DashboardLayout({
   children,
@@ -129,7 +143,7 @@ export default function DashboardLayout({
 
           {/* Navigation */}
           <nav className="flex-1 px-4 pb-4 space-y-1">
-            {navItems.map((item) => {
+            {getNavItems(userPlan).map((item) => {
               const isActive = pathname === item.href || 
                 (item.href !== "/dashboard" && pathname?.startsWith(item.href));
               return (
@@ -222,7 +236,7 @@ export default function DashboardLayout({
               </div>
 
               <nav className="px-4 space-y-1">
-                {navItems.map((item) => {
+                {getNavItems(userPlan).map((item) => {
                   const isActive = pathname === item.href || 
                     (item.href !== "/dashboard" && pathname?.startsWith(item.href));
                   return (
