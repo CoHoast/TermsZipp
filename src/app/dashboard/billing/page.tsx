@@ -215,7 +215,7 @@ export default function BillingPage() {
               )}
             </div>
           </div>
-          {currentPlan !== "free" && profile?.stripe_customer_id && (
+          {currentPlan !== "free" && (
             <Button variant="outline" onClick={handleManageBilling} disabled={portalLoading}>
               {portalLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -346,9 +346,17 @@ export default function BillingPage() {
                   ) : null}
                   Upgrade <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              ) : currentPlan !== "free" && key === "free" ? (
-                <Button variant="outline" className="w-full" onClick={handleManageBilling}>
-                  Manage via Stripe
+              ) : currentPlan !== "free" ? (
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleManageBilling}
+                  disabled={portalLoading}
+                >
+                  {portalLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  {key === "free" ? "Cancel Subscription" : "Switch to " + plan.name}
                 </Button>
               ) : null}
 
