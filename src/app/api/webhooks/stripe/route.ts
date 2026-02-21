@@ -3,11 +3,13 @@ import { getStripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
-// Create admin Supabase client for webhook
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy create admin Supabase client for webhook
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
       
       if (userId && plan) {
         // Update user's profile with subscription info
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabaseAdmin()
           .from('profiles')
           .update({ 
             plan: plan,
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
       console.log(`📝 Subscription updated: ${subscription.id}, status: ${subscription.status}`);
       
       // Update subscription status
-      const { error } = await supabaseAdmin
+      const { error } = await getSupabaseAdmin()
         .from('profiles')
         .update({ 
           subscription_status: subscription.status,
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
       console.log(`❌ Subscription canceled: ${subscription.id}`);
       
       // Downgrade to free plan
-      const { error } = await supabaseAdmin
+      const { error } = await getSupabaseAdmin()
         .from('profiles')
         .update({ 
           plan: 'free',
