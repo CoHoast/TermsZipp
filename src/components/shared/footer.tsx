@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import Image from "next/image";
 
 const zippProducts = [
   { name: "QRZipp", href: "https://qrzipp.com" },
@@ -16,12 +16,16 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="brand-gradient rounded-lg p-1.5">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">
-                Terms<span className="brand-gradient-text">Zipp</span>
+            <Link href="/" className="flex items-center gap-1 mb-4">
+              <Image 
+                src="/logo.svg" 
+                alt="TermsZipp" 
+                width={24} 
+                height={32}
+                className="w-6 h-8"
+              />
+              <span className="text-2xl font-bold">
+                Terms<span className="brand-gradient-text font-extrabold">Zipp</span>
               </span>
             </Link>
             <p className="text-sm text-muted-foreground">
