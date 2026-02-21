@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Check, X, Zap, Building2, Crown,
-  FileText, Download, Users, Infinity,
+  Download, Users, Infinity,
   ArrowRight
 } from "lucide-react";
 import Link from "next/link";
@@ -31,7 +31,7 @@ export default function PricingPage() {
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <div className="brand-gradient rounded-lg p-1.5">
-                <FileText className="h-5 w-5 text-white" />
+                <Zap className="h-5 w-5 text-white" />
               </div>
               <span className="font-bold text-xl">
                 Terms<span className="text-teal-600">Zipp</span>
@@ -357,7 +357,7 @@ export default function PricingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="brand-gradient rounded-lg p-1.5">
-                <FileText className="h-4 w-4 text-white" />
+                <Zap className="h-4 w-4 text-white" />
               </div>
               <span className="font-semibold">TermsZipp</span>
             </div>

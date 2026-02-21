@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { FileText, Menu, X } from "lucide-react";
+import { Zap, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
@@ -13,7 +13,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
           <div className="brand-gradient rounded-lg p-1.5">
-            <FileText className="h-5 w-5 text-white" />
+            <Zap className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold">
             Terms<span className="brand-gradient-text">Zipp</span>
@@ -31,8 +31,8 @@ export function Header() {
           <Link href="/terms-of-service" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Terms
           </Link>
-          <Link href="/eula" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            EULA
+          <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Pricing
           </Link>
         </nav>
 

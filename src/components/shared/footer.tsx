@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { Zap } from "lucide-react";
 
 const zippProducts = [
   { name: "QRZipp", href: "https://qrzipp.com" },
@@ -18,7 +18,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="brand-gradient rounded-lg p-1.5">
-                <FileText className="h-5 w-5 text-white" />
+                <Zap className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold">
                 Terms<span className="brand-gradient-text">Zipp</span>
